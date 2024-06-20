@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Clientes</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-container {
+            width: 50%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-actions {
+            text-align: center;
+        }
+        .form-actions button {
+            padding: 10px 20px;
+            margin: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        #success-message {
+            display: none;
+            width: 50%;
+            margin: 20px auto;
+            padding: 10px;
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+            background-color: #dff0d8;
+            text-align: center;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cadastro de Clientes</h1>
+
+    <div id="success-message">Cliente cadastrado com sucesso!</div>
+    <div id="error-message">Erro ao cadastrar cliente.</div>
+
+    <div class="form-container">
+        <form id="clientesForm" action="/cadastro/clientes" method="POST">
+            <div class="form-group">
+                <label for="razaoSocial">Razão Social:</label>
+                <input type="text" id="razaoSocial" name="razaoSocial" required>
+            </div>
+            <div class="form-group">
+                <label for="nomeFantasia">Nome Fantasia:</label>
+                <input type="text" id="nomeFantasia" name="nomeFantasia" required>
+            </div>
+            <div class="form-group">
+                <label for="cnpj">CNPJ:</label>
+                <input type="text" id="cnpj" name="cnpj" required>
+            </div>
+            <div class="form-group">
+                <label for="telefone">Telefone:</label>
+                <input type="tel" id="telefone" name="telefone" required>
+            </div>
+            <div class="form-group">
+                <label for="email">E-mail:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit">Salvar</button>
+                <button type="reset">Limpar</button>
+                <button type="button" onclick="location.href='/menu'">Voltar ao Menu</button>
+            </div>
+        </form>
+    </div>
+
+    <h1>Lista de Clientes</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Razão Social</th>
+                <th>Nome Fantasia</th>
+                <th>CNPJ</th>
+                <th>Telefone</th>
+                <th>E-mail</th>
+            </tr>
+        </thead>
+        <tbody id="clientes-list">
+            <% if (Array.isArray(data)) { %>
+                <% data.forEach(cliente => { %>
+                    <tr>
+                        <td><%= cliente.razaoSocial %></td>
+                        <td><%= cliente.nomeFantasia %></td>
+                        <td><%= cliente.cnpj %></td>
+                        <td><%= cliente.telefone %></td>
+                        <td><%= cliente.email %></td>
+                    </tr>
+                <% }) %>
+            <% } %>
+        </tbody>
+    </table>
+
+    <script>
+        document.getElementById('clientesForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Impede o envio tradicional do formulário
+
+            const formData = new FormData(this);
+            const jsonData = {};
+            formData.forEach((value, key) => {
+                jsonData[key] = value;
+            });
+
+            fetch('/salvar-clientes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mostrar a mensagem de sucesso
+                    const successMessage = document.getElementById('success-message');
+                    successMessage.style.display = 'block';
+                    successMessage.textContent = 'Cliente cadastrado com sucesso!';
+
+                    // Ocultar a mensagem após alguns segundos
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 3000);
+
+                    // Adicionar o novo cliente na tabela
+                    const clientesList = document.getElementById('clientes-list');
+                    const newRow = document.createElement('tr');
+
+                    newRow.innerHTML = `
+                        <td>${data.cliente.razaoSocial}</td>
+                        <td>${data.cliente.nomeFantasia}</td>
+                        <td>${data.cliente.cnpj}</td>
+                        <td>${data.cliente.telefone}</td>
+                        <td>${data.cliente.email}</td>
+                    `;
+
+                    clientesList.appendChild(newRow);
+
+                    // Limpar o formulário
+                    this.reset();
+                } else {
+                    // Mostrar a mensagem de erro
+                    const errorMessage = document.getElementById('error-message');
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = 'Erro ao cadastrar cliente.';
+
+                    // Ocultar a mensagem após alguns segundos
+                    setTimeout(() => {
+                        errorMessage.style.display = 'none';
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao cadastrar cliente:', error);
+
+                // Mostrar a mensagem de erro
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'Erro ao cadastrar cliente.';
+
+                // Ocultar a mensagem após alguns segundos
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 3000);
+            });
+        });
+    </script>
+</body>
+</html>

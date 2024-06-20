@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pesquisa de Clientes</title>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-container {
+            width: 50%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-actions {
+            text-align: center;
+        }
+        .form-actions .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pesquisa de Clientes</h1>
+        <div class="form-container">
+            <form id="pesquisar-form" action="/pesquisa/clientes" method="POST">
+                <div class="form-group">
+                    <label for="razaoSocial">Razão Social:</label>
+                    <input type="text" id="razaoSocial" name="razaoSocial">
+                </div>
+                <div class="form-group">
+                    <label for="nomeFantasia">Nome Fantasia:</label>
+                    <input type="text" id="nomeFantasia" name="nomeFantasia">
+                </div>
+                <div class="form-group">
+                    <label for="cnpj">CNPJ:</label>
+                    <input type="text" id="cnpj" name="cnpj">
+                </div>
+                <div class="form-group">
+                    <label for="telefone">Telefone:</label>
+                    <input type="text" id="telefone" name="telefone">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email">
+                </div>
+                <div class="form-actions button-group">
+                    <button type="submit">Pesquisar</button>
+                    <button type="button" onclick="window.location.href='/menu'">Voltar ao Menu</button>
+                </div>
+            </form>
+        </div>
+
+        <% if (clientes && clientes.length > 0) { %>
+            <h2>Clientes Encontrados</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Razão Social</th>
+                        <th>Nome Fantasia</th>
+                        <th>CNPJ</th>
+                        <th>Telefone</th>
+                        <th>Email</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% clientes.forEach(cliente => { %>
+                        <tr>
+                            <td><%= cliente.razaoSocial %></td>
+                            <td><%= cliente.nomeFantasia %></td>
+                            <td><%= cliente.cnpj %></td>
+                            <td><%= cliente.telefone %></td>
+                            <td><%= cliente.email %></td>
+                            <td>
+                                <form id="editar-form-<%= cliente.id %>" action="/editar-cliente/<%= cliente.id %>" method="GET" style="display: inline;">
+                                    <button type="submit">Editar</button>
+                                </form>
+                                <form id="deletar-form-<%= cliente.id %>" action="/deletar-cliente/<%= cliente.id %>" method="POST" style="display: inline;">
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    <button type="button" class="delete-btn" data-id="<%= cliente.id %>">Deletar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        <% } else { %>
+            <div class="no-results">
+                <p>Nenhum cliente encontrado.</p>
+            </div>
+        <% } %>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const clienteId = this.getAttribute('data-id');
+                    if (confirm('Tem certeza que deseja prosseguir com a operação?')) {
+                        document.getElementById('deletar-form-' + clienteId).submit();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Consultorias</title>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .form-container {
+            width: 50%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-actions {
+            text-align: center;
+        }
+        .form-actions button {
+            padding: 10px 20px;
+            margin: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        #success-message {
+            display: none;
+            width: 50%;
+            margin: 20px auto;
+            padding: 10px;
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+            background-color: #dff0d8;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .report-actions {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .report-actions button {
+            padding: 10px 20px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Consultorias</h1>
+        <div id="success-message">Consultoria registrada com sucesso</div>
+        <div class="form-container">
+            <form id="consultoria-form" action="/consultas/trabalhos" method="GET">
+                <div class="form-group">
+                    <label for="dataInicio">Data Início</label>
+                    <input type="date" id="dataInicio" name="dataInicio">
+                </div>
+                <div class="form-group">
+                    <label for="dataFim">Data Fim</label>
+                    <input type="date" id="dataFim" name="dataFim">
+                </div>
+                <div class="form-group">
+                    <label for="clienteId">Cliente</label>
+                    <select id="clienteId" name="clienteId">
+                        <option value="">Todos</option>
+                        <% clientes.forEach(cliente => { %>
+                            <option value="<%= cliente.id %>"><%= cliente.nomeFantasia %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="consultorId">Consultor</label>
+                    <select id="consultorId" name="consultorId">
+                        <option value="">Todos</option>
+                        <% consultores.forEach(consultor => { %>
+                            <option value="<%= consultor.id %>"><%= consultor.nome %></option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Filtrar</button>                    
+                    <button class="back-to-menu" id="back-to-menu-button">Voltar ao Menu</button>
+                    <button id="emitirRelatorioBtn">Imprimir Relatório</button>
+                </div>
+            </form>
+        </div>
+
+        <script>
+            // Adiciona um evento de clique ao botão "Voltar ao Menu"
+            document.getElementById('back-to-menu-button').addEventListener('click', function(event) {
+                // Impede o comportamento padrão do botão
+                event.preventDefault();
+                // Redireciona para a página do menu
+                window.location.href = "/menu";
+            });
+        </script>
+
+        <!-- Grid de Consultorias Registradas -->
+        <h2>Consultorias Registradas</h2>
+        <table id="consultoriasTable">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Hora Início</th>
+                    <th>Hora Fim</th>
+                    <th>Intervalo</th>
+                    <th>Valor por Hora</th>
+                    <th>Cliente</th>
+                    <th>Consultor</th>
+                    <th>Total (R$)</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% consultorias.forEach(consultoria => { %>
+                    <tr>
+                        <td><%= new Date(consultoria.data).toLocaleDateString('pt-BR') %></td>
+                        <td><%= consultoria.horaInicio %></td>
+                        <td><%= consultoria.horaFim %></td>
+                        <td><%= consultoria.intervalo %></td>
+                        <td><%= consultoria.valorHora %></td>
+                        <td><%= consultoria.Cliente ? consultoria.Cliente.nomeFantasia : '' %></td>
+                        <td><%= consultoria.Consultor ? consultoria.Consultor.nome : '' %></td>
+                        <td><%= (consultoria.valorHora * ((new Date('1970-01-01T' + consultoria.horaFim) - new Date('1970-01-01T' + consultoria.horaInicio)) / 3600000 - consultoria.intervalo)).toFixed(2) %></td>
+                        <td>
+                            <form id="editar-form-<%= consultoria.id %>" action="/editar-consultoria/<%= consultoria.id %>" method="GET" style="display: inline;">
+                                <button type="submit">Editar</button>
+                            </form>
+                            <form id="deletar-form-<%= consultoria.id %>" action="/deletar-consultoria/<%= consultoria.id %>" method="POST" style="display: inline;">
+                                <input type="hidden" name="_method" value="DELETE">
+                                <button type="button" class="delete-btn" data-id="<%= consultoria.id %>">Deletar</button>
+                            </form>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Adicionando a biblioteca jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+        document.getElementById('emitirRelatorioBtn').addEventListener('click', function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            let table = document.getElementById('consultoriasTable');
+            let rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            let totalHoras = 0;
+            let totalValor = 0;
+
+            doc.setFontSize(18);
+            doc.text('Relatório de Consultorias', 14, 22);
+            doc.setFontSize(12);
+            doc.text('Data: ' + new Date().toLocaleDateString(), 14, 30);
+
+            // Cabeçalho da tabela
+            doc.setFontSize(10);
+            doc.text('Data', 14, 40);
+            doc.text('Hora Início', 44, 40);
+            doc.text('Hora Fim', 74, 40);
+            doc.text('Intervalo', 104, 40);
+            doc.text('Valor por Hora', 134, 40);
+            doc.text('Cliente', 164, 40);
+            doc.text('Consultor', 194, 40);
+            doc.text('Total (R$)', 224, 40);
+
+            let y = 50;
+
+            for (let i = 0; i < rows.length; i++) {
+                let cells = rows[i].getElementsByTagName('td');
+                let data = cells[0].innerText;
+                let horaInicio = cells[1].innerText;
+                let horaFim = cells[2].innerText;
+                let intervalo = parseFloat(cells[3].innerText);
+                let valorHora = parseFloat(cells[4].innerText.replace('R$', '').replace(',', '.'));
+                let cliente = cells[5].innerText;
+                let consultor = cells[6].innerText;
+                let total = parseFloat(cells[7].innerText.replace('R$', '').replace(',', '.'));
+
+                // Cálculo das horas totais (considerando horas inteiras)
+                let inicio = new Date('1970-01-01T' + horaInicio + 'Z');
+                let fim = new Date('1970-01-01T' + horaFim + 'Z');
+                let horas = (fim - inicio) / (1000 * 60 * 60) - intervalo;
+                totalHoras += horas;
+                totalValor += total;
+
+                doc.text(data, 14, y);
+                doc.text(horaInicio, 44, y);
+                doc.text(horaFim, 74, y);
+                doc.text(intervalo.toString(), 104, y);
+                doc.text(valorHora.toFixed(2), 134, y);
+                doc.text(cliente, 164, y);
+                doc.text(consultor, 194, y);
+                doc.text(total.toFixed(2), 224, y);
+
+                y += 10;
+
+                // Verificar se o Y está ultrapassando o limite da página e adicionar uma nova página se necessário
+                if (y > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
+            }
+
+            // Exibição dos totais
+            doc.setFontSize(12);
+            y += 10;
+            doc.text('Total de Horas: ' + totalHoras.toFixed(2), 14, y);
+            y += 10;
+            doc.text('Total a Receber: R$ ' + totalValor.toFixed(2), 14, y);
+
+            doc.save('relatorio_consultorias.pdf');
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const consultoriaId = this.getAttribute('data-id');
+                    if (confirm('Tem certeza que deseja prosseguir com a operação?')) {
+                        document.getElementById('deletar-form-' + consultoriaId).submit();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

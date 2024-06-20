@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pesquisa de Feedback</title>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-container {
+            width: 50%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-actions {
+            text-align: center;
+        }
+        .form-actions .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pesquisa de Feedback</h1>
+        <div class="form-container">
+            <form id="pesquisar-form" action="/feedback/pesquisar" method="GET">
+                <div class="form-group">
+                    <label for="titulo">Título:</label>
+                    <input type="text" id="titulo" name="titulo">
+                </div>
+                <div class="form-group">
+                    <label for="data">Data:</label>
+                    <input type="date" id="data" name="data">
+                </div>
+                <div class="form-group">
+                    <label for="clienteId">Cliente:</label>
+                    <select id="clienteId" name="clienteId">
+                        <option value="">Todos</option>
+                        <% clientes.forEach(function(cliente) { %>
+                            <option value="<%= cliente.id %>"><%= cliente.razaoSocial %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="consultorId">Consultor:</label>
+                    <select id="consultorId" name="consultorId">
+                        <option value="">Todos</option>
+                        <% consultores.forEach(function(consultor) { %>
+                            <option value="<%= consultor.id %>"><%= consultor.nome %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="form-actions button-group">
+                    <button type="submit">Pesquisar</button>
+                    <button type="button" onclick="window.location.href='/menu'">Voltar ao Menu</button>
+                    <button type="button" id="imprimir-feedback">Imprimir Feedback</button>
+                </div>
+            </form>
+        </div>
+
+        <% if (feedbacks && feedbacks.length > 0) { %>
+            <h2>Feedbacks Encontrados</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Título</th>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Consultor</th>
+                        <th>Feedback</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% feedbacks.forEach(function(feedback) { %>
+                        <tr>
+                            <td><%= feedback.titulo %></td>
+                            <td><%= new Date(feedback.data).toLocaleDateString('pt-BR') %></td>
+                            <td><%= feedback.Cliente ? feedback.Cliente.nomeFantasia : '' %></td>
+                            <td><%= feedback.Consultor ? feedback.Consultor.nome : '' %></td>
+                            <td><%= feedback.texto %></td>
+                            <td>
+                                <form id="editar-form-<%= feedback.id %>" action="/editar-feedback/<%= feedback.id %>" method="GET" style="display: inline;">
+                                    <button type="submit">Editar</button>
+                                </form>
+                                <form id="deletar-form-<%= feedback.id %>" action="/deletar-feedback/<%= feedback.id %>" method="POST" style="display: inline;">
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    <button type="button" class="delete-btn" data-id="<%= feedback.id %>">Deletar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            <!-- Adiciona um elemento escondido para armazenar os dados dos feedbacks -->
+            <div id="feedback-data" data-feedbacks='<%= JSON.stringify(feedbacks) %>' style="display: none;"></div>
+        <% } else { %>
+            <div class="no-results">
+                <p>Nenhum feedback encontrado.</p>
+            </div>
+        <% } %>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.delete-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const feedbackId = this.getAttribute('data-id');
+                    if (confirm('Tem certeza que deseja prosseguir com a operação?')) {
+                        document.getElementById('deletar-form-' + feedbackId).submit();
+                    }
+                });
+            });
+
+            document.getElementById('imprimir-feedback').addEventListener('click', function() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                let y = 10;
+
+                doc.setFontSize(18);
+                doc.text('Relatório de Feedbacks', 10, y);
+                y += 10;
+
+                // Recupera os dados dos feedbacks do elemento escondido
+                const feedbackData = document.getElementById('feedback-data').getAttribute('data-feedbacks');
+                const feedbacks = JSON.parse(feedbackData);
+
+                feedbacks.forEach(function(feedback) {
+                    doc.setFontSize(12);
+                    
+                    doc.text(`Título: ${feedback.titulo}`, 10, y);
+                    y += 10;
+
+                    const dataFormatada = (new Date(feedback.data)).toLocaleDateString("pt-BR");
+                    doc.text(`Data: ${dataFormatada}`, 10, y);
+                    y += 10;
+
+                    const cliente = feedback.Cliente ? feedback.Cliente.razaoSocial : "";
+                    doc.text(`Cliente: ${cliente}`, 10, y);
+                    y += 10;
+
+                    const consultor = feedback.Consultor ? feedback.Consultor.nome : "";
+                    doc.text(`Consultor: ${consultor}`, 10, y);
+                    y += 10;
+
+                    doc.text('Feedback:', 10, y);
+                    y += 10;
+
+                    const feedbackText = feedback.texto.replace(/(?:\r\n|\r|\n)/g, ' ');
+                    const splitFeedbackText = doc.splitTextToSize(feedbackText, 180);
+
+                    splitFeedbackText.forEach(function(line) {
+                        if (y > 280) { // Check if y coordinate is near the bottom of the page
+                            doc.addPage();
+                            y = 10; // Reset y coordinate for new page
+                        }
+                        doc.text(line, 10, y);
+                        y += 10;
+                    });
+                    y += 10;
+                });
+
+                doc.save('relatorio_feedbacks.pdf');
+            });
+        });
+    </script>
+</body>
+</html>
